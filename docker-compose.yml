@@ -1,0 +1,42 @@
+version: "3"
+
+services:
+  bitcoinz-node:
+    image: btcz/bitcoinz-insight-patched
+    networks:
+      - back
+    ports:
+      - 1989:1989
+    volumes:
+      - ./data/bitcoinz-node/:/bitcoinz/data
+      - ./docker/bitcoinz.conf:/bitcoinz/data/bitcoinz.conf
+  mysql:
+    image: mariadb
+    networks:
+      - back
+    environment:
+      MYSQL_DATABASE: txtz
+      MYSQL_USER: txtz
+      MYSQL_PASSWORD: "btczftw!"
+      MYSQL_ROOT_PASSWORD: "btczftw!"
+    volumes:
+     - "./data/mysql:/var/lib/mysql"
+  txtz:
+    build:
+      context: .
+    networks:
+      - back
+    environment:
+      DB_HOST: mysql.
+      DB_USER: txtz
+      DB_PASSWORD: "btczftw!"
+      DB_DATABASE: txtz
+      BTCZ_NODE_HOST: bitcoinz-node.
+      TWILIO_ACCOUNTSID: "${TWILIO_ACCOUNTSID}"
+      TWILIO_TOKEN: "${TWILIO_TOKEN}"
+      TWILIO_SMS_NUMBER: "${TWILIO_SMS_NUMBER}"
+    ports:
+      - 3838:3838
+
+networks:
+  back:
