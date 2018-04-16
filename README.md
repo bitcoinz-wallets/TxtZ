@@ -56,9 +56,19 @@ Run the knex migrations
 Build and setup a BitcoinZ node using the insight patched node repository:
 https://github.com/btcz/bitcoinz-insight-patched
 
-## Docker
-You can use docker-compose to quickly build and launch the TxtZ service with one
-command:
+## Docker Compose
+TxtZ has support for Docker Compose to make it easy to quickly build and launch
+the TxtZ service.
+
+Copy the `env-defaults` template to the Docker Compose environment file:
+
+    cp ./docker/env-defaults .env
+
+Edit the `.env` file and add the required Twilio configuration:
+
+    vim .env
+
+Launch the TxtZ service with the following command:
 
     docker-compose up
 

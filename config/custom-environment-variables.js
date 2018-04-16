@@ -1,5 +1,5 @@
 module.exports = {
-  btczNode: {
+  node: {
     username: 'BTCZ_NODE_USER',
     password: 'BTCZ_NODE_PASS',
     host: 'BTCZ_NODE_HOST'

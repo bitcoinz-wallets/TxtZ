@@ -2,7 +2,7 @@ module.exports = {
   server: {
     port: 3838,
   },
-  btczNode: {
+  node: {
     username: 'bitcoin',
     password: 'local321',
     host: '127.0.0.1',

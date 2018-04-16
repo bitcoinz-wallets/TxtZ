@@ -33,9 +33,9 @@ const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance()
 const app = express();
 
 const twilio = new Twilio(config.twilio.accountSid, config.twilio.token);
-const rpc = new Zcash(config.btczNode);
+const rpc = new Zcash(config.node);
 
-const zmqUrl = `tcp://${config.btczNode.host}:${config.btczNode.zmqPort}`;
+const zmqUrl = `tcp://${config.node.host}:${config.node.zmqPort}`;
 const zmqSubSocket = zmq.socket('sub');
 
 function sendResponse(toNumber, text) {
@@ -186,9 +186,7 @@ function transactionHandler(rawtx) {
   }
 
   const txObj = tx.toObject();
-  cache.put(tx.id, true, 3600000, function(key, value) {
-    console.log(`stored ${key} with value: ${value}`);
-  });
+  cache.put(tx.id, true, 3600000);
 
   // if no inputs found, then no further processing needed
   if (!tx.inputs[0] || !tx.inputs[0].script) {
