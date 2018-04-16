@@ -38,28 +38,32 @@ const rpc = new Zcash(config.node);
 const zmqUrl = `tcp://${config.node.host}:${config.node.zmqPort}`;
 const zmqSubSocket = zmq.socket('sub');
 
-function sendResponse(toNumber, text) {
-  twilio.messages.create({
-    body: text,
-    to: toNumber,
-    from: config.twilio.smsNumber
-  }).catch((err) => console.log('sendResponse error', JSON.stringify(err)));
+async function sendResponse(toNumber, text) {
+  try {
+    await twilio.messages.create({
+      body: text,
+      to: toNumber,
+      from: config.twilio.smsNumber
+    });
+  } catch(err) {
+    console.error('sendResponse error', JSON.stringify(err));
+  }
 }
 
-function lookupOrCreateAddressByNumber(number) {
-  return NumberMapping.where('number', number).fetch({require: true}).catch((err) => {
+async function lookupOrCreateAddressByNumber(number) {
+  try {
+    return await NumberMapping.where('number', number).fetch({require: true});
+  } catch(err) {
     if (/^EmptyResponse/.test(err.message)) {
-      return rpc.getnewaddress('').then(address => {
-        return NumberMapping.create({
-          number,
-          address
-        }).then(() => {
-          return NumberMapping.where('number', number).fetch({require: true});
-        });
+      const address = await rpc.getnewaddress('');
+      await NumberMapping.create({
+        number,
+        address
       });
+      return NumberMapping.where('number', number).fetch({require: true});
     }
     throw err;
-  });
+  }
 }
 
 function helpSend(smsIn) {
@@ -86,11 +90,12 @@ async function sendCoins(smsIn, numberMapping) {
       const result = await lookupOrCreateAddressByNumber(numberFormated);
       toAddress = result.get('address');
     }
-  } catch(e) {
-    console.error('parse number error', e);
+  } catch(err) {
+    console.error('sendCoins parse number error', JSON.stringify(err));
   }
 
-  return rpc.getaddressbalance(fromAddress).then(result => {
+  try {
+    const result = await rpc.getaddressbalance(fromAddress);
     const balance = result.balance / 100000000;
     const remainingBalance = balance - amount;
 
@@ -106,13 +111,12 @@ async function sendCoins(smsIn, numberMapping) {
       transactions.push({ "address": fromAddress, "amount": remainingBalance });
     }
 
-    return rpc.z_sendmany(fromAddress, transactions, 1, 0);
-  }).then(() => {
+    await rpc.z_sendmany(fromAddress, transactions, 1, 0);
     sendResponse(smsIn.From, `${amount} BTCZ has been sent to ${toAddress}`);
-  }).catch((err) => {
+  } catch(err) {
     console.error('sendCoins error', JSON.stringify(err));
     sendResponse(smsIn.From, 'There was an error processing your request');
-  });
+  }
 }
 
 function receiveCoins(smsIn, numberMapping) {
@@ -122,15 +126,16 @@ function receiveCoins(smsIn, numberMapping) {
   sendResponse(smsIn.From, address);
 }
 
-function lookupBalance(smsIn, numberMapping) {
+async function lookupBalance(smsIn, numberMapping) {
   const address = numberMapping.get('address');
-  return rpc.getaddressbalance(address).then(response => {
+  try {
+    const response = await rpc.getaddressbalance(address);
     const balance = response.balance / 100000000;
     sendResponse(smsIn.From, `Your balance is ${balance} BTCZ`);
-  }).catch((err) => {
-    console.error('getaddressbalance error', JSON.stringify(err));
+  } catch(err) {
+    console.error('lookupBalance error', JSON.stringify(err));
     sendResponse(smsIn.From, 'There was an error retrieving details');
-  });
+  }
 }
 
 function welcome(smsIn) {
@@ -141,12 +146,13 @@ function help(smsIn) {
   sendResponse(smsIn.From, "Commands are:\nbal, balance - balance info\nrec, receive - wallet address info\nsend [amount] [address or number]");
 }
 
-function routeResponse(smsIn) {
+async function routeResponse(smsIn) {
   if (!smsIn.Body || !smsIn.From) {
       throw "Invalid response received from Twilio";
   }
 
-  lookupOrCreateAddressByNumber(smsIn.From).then((numberMapping) => {
+  try {
+    const numberMapping = await lookupOrCreateAddressByNumber(smsIn.From);
     const normalizeText = smsIn.Body.toLowerCase().trim();
 
     if (normalizeText === 'start' || normalizeText === 'setup' || normalizeText === 'welcome') {
@@ -175,9 +181,10 @@ function routeResponse(smsIn) {
     }
 
     sendResponse(smsIn.From, 'Unrecognized command. Commands are help, balance, send, and receive');
-  });
+  } catch(err) {
+    console.error('routeResponse error', JSON.stringify(err));
+  }
 }
-
 
 function transactionHandler(rawtx) {
   const tx = new bitcore.Transaction(rawtx);
@@ -188,7 +195,8 @@ function transactionHandler(rawtx) {
   const txObj = tx.toObject();
   cache.put(tx.id, true, 3600000);
 
-  // if no inputs found, then no further processing needed
+  // If no inputs found, then no further processing needed
+  // We should proably be looking for the OP_CODE here instead
   if (!tx.inputs[0] || !tx.inputs[0].script) {
     return;
   }
