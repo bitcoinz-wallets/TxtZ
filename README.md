@@ -19,13 +19,62 @@ Warning: TxtZ is experimental and should be used at your own risk.
 ## Requirements
 
 * Twilio.com account
-* Node v8.x.x
+* Nodejs v8.x.x
+* MySQL (or MariaDB)
 * Linux (probably)
 * BitcoinZ Full Node
 
 ## Install
-Before moving forward, you will need make sure you have a Twilio account setup and
-create an accountSid and token for a SMS phone number.
+Before moving forward, you will need make sure you have a Twilio account setup
+and create an accountSid and token for a SMS phone number. TxtZ can be installed
+using two different methods using either a `docker` and `docker-compose` install
+or TxtZ can be installed manually. Before moving forward with the `docker` and
+`docker-compose` install method,  please make sure you have docker installed
+before continuing as these instructions do not cover how to install and setup
+docker.
+
+### Install Using Docker Compose
+The fastest and easiest way to get TxtZ up and running is to use `docker` and
+`docker-compose`. The `docker-compose` command will download, setup, and install
+the Nodejs app, MySQL, and the BitcoinZ Full node. This makes it easier to jump
+into TxtZ without having to worry about all of the dependencies.
+
+To get started, checkout TxtZ from git and change to the project directory:
+
+    git clone https://github.com/bitcoinz-wallets/TxtZ.git
+    cd TxtZ
+
+Next, copy the `env-defaults` template to the `docker-compose` environment file:
+
+    cp ./docker/env-defaults .env
+
+The `.env` file is where the Twilio configuration will go for the `docker-compose`
+environment. Next, you will want to edit the `.env` file and add the required
+Twilio configuration:
+
+    vim .env
+
+Finally, launch the TxtZ service with the following command:
+
+    docker-compose up
+
+#### Other Docker Compose Commands
+
+To launch TxtZ as a daemon and run in the background, you can use the following
+command:
+
+    docker-compose up -d
+
+The `docker-compose` command should show you a log output, however, if it does
+not or you are running as a daemon you can use the following command to see the
+logs:
+
+    docker-compose logs -f -t
+
+
+### Manually Installing TxtZ
+If not using docker and docker-compose, follow these instructions to Manually
+setup TxtZ
 
 #### Configure TxtZ
 Configure the project by editing config found in `config/default.js`. At the minimum
@@ -55,22 +104,6 @@ Run the knex migrations
 #### Setup BitcoinZ Full Node
 Build and setup a BitcoinZ node using the insight patched node repository:
 https://github.com/btcz/bitcoinz-insight-patched
-
-## Docker Compose
-TxtZ has support for Docker Compose to make it easy to quickly build and launch
-the TxtZ service.
-
-Copy the `env-defaults` template to the Docker Compose environment file:
-
-    cp ./docker/env-defaults .env
-
-Edit the `.env` file and add the required Twilio configuration:
-
-    vim .env
-
-Launch the TxtZ service with the following command:
-
-    docker-compose up
 
 ## Services
 When Twilio receives a message, the Twilio service will send a notification to
