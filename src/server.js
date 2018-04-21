@@ -244,8 +244,8 @@ app.post("/message", function (req, res) {
     console.error(`Unauthorized request to: ${req.url}`);
   }
 
-  // always return a successful 200 response
-  res.send();
+  // For security reasons, always return a successful 200 response
+  res.send('<Response></Response>');
 });
 
 app.get("/", function (request, response) {
