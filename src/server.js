@@ -29,6 +29,7 @@ const zmq = require('zmq');
 const cache = require('memory-cache');
 const PNF = require('google-libphonenumber').PhoneNumberFormat;
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
+const morgan = require('morgan');
 
 const app = express();
 
@@ -225,11 +226,26 @@ function transactionHandler(rawtx) {
   }
 }
 
+app.use(morgan('combined'));
 app.use(bodyParser.urlencoded({extended: false}));
 
-app.post("/message", function (request, response) {
-  response.send();
-  routeResponse(request.body);
+app.post("/message", function (req, res) {
+  const opts = {};
+
+  // check if this is a request from a proxy and build the real URL
+  if (req.headers.host && req.headers['x-forwarded-proto']) {
+    opts.url = req.headers['x-forwarded-proto'] + `://${req.headers.host}${req.url}`;
+  }
+
+  // Make sure the request is from Twilio before allowing it to be processed
+  if (Twilio.validateExpressRequest(req, config.twilio.token, opts)) {
+    routeResponse(req.body);
+  } else {
+    console.error(`Unauthorized request to: ${req.url}`);
+  }
+
+  // always return a successful 200 response
+  res.send();
 });
 
 app.get("/", function (request, response) {
