@@ -33,6 +33,8 @@ const morgan = require('morgan');
 
 const app = express();
 
+
+
 const twilio = new Twilio(config.twilio.accountSid, config.twilio.token);
 const rpc = new Zcash(config.node);
 
@@ -96,9 +98,9 @@ async function sendCoins(smsIn, numberMapping) {
   }
 
   try {
-    const result = await rpc.getaddressbalance(fromAddress);
-    const balance = result.balance / 100000000;
-    const remainingBalance = balance - amount;
+    const result = await rpc.z_getbalance(fromAddress);
+    const balance = result; //.balance / 100000000;
+    const remainingBalance = balance - amount - Number(0.0001);
 
     if (remainingBalance < 0) {
       throw Error(`Not enough coins to process your request. Balance: ${balance} BTCZ`);
@@ -109,10 +111,10 @@ async function sendCoins(smsIn, numberMapping) {
     ];
 
     if (remainingBalance > 0) {
-      transactions.push({ "address": fromAddress, "amount": remainingBalance });
+      transactions.push({ "address": fromAddress, "amount": remainingBalance});
     }
 
-    await rpc.z_sendmany(fromAddress, transactions, 1, 0);
+    await rpc.z_sendmany(fromAddress, transactions, 1, Number(0.0001));
     sendResponse(smsIn.From, `${amount} BTCZ has been sent to ${toAddress}`);
   } catch(err) {
     console.error('sendCoins error', JSON.stringify(err));
@@ -130,8 +132,8 @@ function receiveCoins(smsIn, numberMapping) {
 async function lookupBalance(smsIn, numberMapping) {
   const address = numberMapping.get('address');
   try {
-    const response = await rpc.getaddressbalance(address);
-    const balance = response.balance / 100000000;
+    const response = await rpc.z_getbalance(address);
+    const balance = response; //.balance / 100000000;
     sendResponse(smsIn.From, `Your balance is ${balance} BTCZ`);
   } catch(err) {
     console.error('lookupBalance error', JSON.stringify(err));
