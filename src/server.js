@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The BitcoinZ Project
+ * Copyright 2019 The BitcoinZ Project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,12 +31,13 @@ const PNF = require('google-libphonenumber').PhoneNumberFormat;
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
 const morgan = require('morgan');
 
+const blockchain = require('./models/blockchain')
+
 const app = express();
 
 
 
 const twilio = new Twilio(config.twilio.accountSid, config.twilio.token);
-const rpc = new Zcash(config.node);
 
 const zmqUrl = `tcp://${config.node.host}:${config.node.zmqPort}`;
 const zmqSubSocket = zmq.socket('sub');
@@ -58,10 +59,11 @@ async function lookupOrCreateAddressByNumber(number) {
     return await NumberMapping.where('number', number).fetch({require: true});
   } catch(err) {
     if (/^EmptyResponse/.test(err.message)) {
-      const address = await rpc.getnewaddress('');
+      const address = await blockchain.generateNewTaddress();
       await NumberMapping.create({
         number,
-        address
+        address,
+        WIF
       });
       return NumberMapping.where('number', number).fetch({require: true});
     }
@@ -98,26 +100,25 @@ async function sendCoins(smsIn, numberMapping) {
   }
 
   try {
-    const result = await rpc.z_getbalance(fromAddress);
-    const balance = result; //.balance / 100000000;
-    const remainingBalance = balance - amount - Number(0.0001);
+    const result = await blockchain.getBalance(fromAddress);
+    const balance = result.balance / 100000000;
+    const remainingBalance = balance - amount - 0.0001;
 
     if (remainingBalance < 0) {
       throw Error(`Not enough coins to process your request. Balance: ${balance} BTCZ`);
     }
 
-    const transactions = [
-      { "address": toAddress, "amount": amount }
-    ];
 
-    if (remainingBalance > 0) {
-      transactions.push({ "address": fromAddress, "amount": remainingBalance});
-    }
+    let unspentOutputs = await blockchain.listunspent(fromAddress);
+    let createTx = blockchain.createTransaction;
+    let tx = createTx(unspentOutputs.result, toAddress, amount, 0.0001, result.get('WIF'));
+    let broadcast = await blockchain.broadcastTransaction(tx);
 
-    await rpc.z_sendmany(fromAddress, transactions, 1, Number(0.0001));
+
     sendResponse(smsIn.From, `${amount} BTCZ has been sent to ${toAddress}`);
+    console.log('sendCoins done', JSON.stringify(broadcast));
   } catch(err) {
-    console.error('sendCoins error', JSON.stringify(err));
+    console.error('sendCoins error', JSON.stringify(broadcast));
     sendResponse(smsIn.From, 'There was an error processing your request');
   }
 }
@@ -132,8 +133,8 @@ function receiveCoins(smsIn, numberMapping) {
 async function lookupBalance(smsIn, numberMapping) {
   const address = numberMapping.get('address');
   try {
-    const response = await rpc.z_getbalance(address);
-    const balance = response; //.balance / 100000000;
+    const response = await blockchain.getBalance(address);
+    const balance = response.balance / 100000000;
     sendResponse(smsIn.From, `Your balance is ${balance} BTCZ`);
   } catch(err) {
     console.error('lookupBalance error', JSON.stringify(err));

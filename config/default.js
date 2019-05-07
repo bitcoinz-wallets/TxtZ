@@ -8,6 +8,7 @@ module.exports = {
     host: '127.0.0.1',
     port: 1979,
     zmqPort: 28332,
+    rpc: 'http://bitcoin:local321**@127.0.0.1:1979',
   },
   knex: {
     client: 'mysql',
