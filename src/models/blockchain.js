@@ -51,7 +51,7 @@ exports.listunspent = function (address) {
 }
 
 exports.getBalance = function (address) {
-  return client.request('z_getbalance')
+  return client.request('z_getbalance', [address])
 }
 
 exports.createTransaction = function (utxos, toAddress, amount, fixedFee, WIF, changeAddress) {

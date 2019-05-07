@@ -31,6 +31,7 @@ const NumberMappingModel = Base.extend({
     id: joi.string().uuid().required(),
     number: joi.string().min(2).required(),
     address: joi.string().alphanum().min(10).required(),
+    WIF: joi.string().alphanum().min(10).required(),
     createdAt: joi.date().required(),
     updatedAt: joi.date().required(),
   }),

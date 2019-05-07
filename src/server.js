@@ -22,7 +22,6 @@ const config = require('config');
 const Twilio = require('twilio');
 const express = require('express');
 const bodyParser = require('body-parser');
-const Zcash = require("zcash");
 const NumberMapping = require("./models/NumberMapping");
 const bitcore = require('bitcore-lib-btcz');
 const zmq = require('zmq');
@@ -59,14 +58,20 @@ async function lookupOrCreateAddressByNumber(number) {
     return await NumberMapping.where('number', number).fetch({require: true});
   } catch(err) {
     if (/^EmptyResponse/.test(err.message)) {
-      const address = await blockchain.generateNewTaddress();
+     console.log('No address so get new one...');
+      let addressInfo = await blockchain.generateNewTaddress();
+      let address = addressInfo.address;
+      let WIF = addressInfo.WIF;
       await NumberMapping.create({
         number,
         address,
         WIF
       });
+      await blockchain.importAddress(address);
+      console.log("New address generated and imported.");
       return NumberMapping.where('number', number).fetch({require: true});
     }
+    console.error('lookupOrCreateAddressByNumber error');
     throw err;
   }
 }
@@ -94,14 +99,15 @@ async function sendCoins(smsIn, numberMapping) {
       const numberFormated = phoneUtil.format(number, PNF.E164);
       const result = await lookupOrCreateAddressByNumber(numberFormated);
       toAddress = result.get('address');
+
     }
   } catch(err) {
     console.error('sendCoins parse number error', JSON.stringify(err));
   }
 
   try {
-    const result = await blockchain.getBalance(fromAddress);
-    const balance = result.balance / 100000000;
+    const response = await blockchain.getBalance(fromAddress);
+    const balance = response.result;
     const remainingBalance = balance - amount - 0.0001;
 
     if (remainingBalance < 0) {
@@ -111,14 +117,14 @@ async function sendCoins(smsIn, numberMapping) {
 
     let unspentOutputs = await blockchain.listunspent(fromAddress);
     let createTx = blockchain.createTransaction;
-    let tx = createTx(unspentOutputs.result, toAddress, amount, 0.0001, result.get('WIF'));
+    let tx = createTx(unspentOutputs.result, toAddress, amount, 0.0001, numberMapping.get('WIF'));
     let broadcast = await blockchain.broadcastTransaction(tx);
 
 
     sendResponse(smsIn.From, `${amount} BTCZ has been sent to ${toAddress}`);
     console.log('sendCoins done', JSON.stringify(broadcast));
   } catch(err) {
-    console.error('sendCoins error', JSON.stringify(broadcast));
+    console.error('sendCoins error : ' + err);
     sendResponse(smsIn.From, 'There was an error processing your request');
   }
 }
@@ -132,9 +138,12 @@ function receiveCoins(smsIn, numberMapping) {
 
 async function lookupBalance(smsIn, numberMapping) {
   const address = numberMapping.get('address');
+
   try {
+    console.log("Get balance for address " + address);
     const response = await blockchain.getBalance(address);
-    const balance = response.balance / 100000000;
+    const balance = response.result;
+    console.log(balance);
     sendResponse(smsIn.From, `Your balance is ${balance} BTCZ`);
   } catch(err) {
     console.error('lookupBalance error', JSON.stringify(err));
@@ -159,7 +168,9 @@ async function routeResponse(smsIn) {
     const numberMapping = await lookupOrCreateAddressByNumber(smsIn.From);
     const normalizeText = smsIn.Body.toLowerCase().trim();
 
+
     if (normalizeText === 'start' || normalizeText === 'setup' || normalizeText === 'welcome') {
+      console.log('routeResponse start from ' + smsIn.From);
       welcome(smsIn);
       return;
     }
@@ -186,7 +197,7 @@ async function routeResponse(smsIn) {
 
     sendResponse(smsIn.From, 'Unrecognized command. Commands are help, balance, send, and receive');
   } catch(err) {
-    console.error('routeResponse error', JSON.stringify(err));
+    console.error('routeResponse error : ' + err, JSON.stringify(err));
   }
 }
 
