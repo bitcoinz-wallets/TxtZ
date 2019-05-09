@@ -19,14 +19,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-let config = require('config')
-let jayson = require('jayson/promise')
-let url = require('url')
-let rpc = url.parse(config.node.rpc)
-let client = jayson.client.http(rpc)
-let bitcore = require('bitcore-lib-btcz')
-
-
+const config = require('config')
+const jayson = require('jayson/promise')
+const url = require('url')
+const rpcURL = 'http://'+config.node.username+':'+config.node.password+'@'+config.node.host+':'+config.node.port;
+const rpc = url.parse(rpcURL)
+const client = jayson.client.http(rpc)
+const bitcore = require('bitcore-lib-btcz')
 rpc.timeout = 5000
 
 exports.importAddress = function (address) {
@@ -38,7 +37,6 @@ exports.getReceivedByAddress = function (address) {
     client.request('getreceivedbyaddress', [address, 0]),
     client.request('getreceivedbyaddress', [address, 1])
   ]
-
   return Promise.all(reqs)
 }
 
@@ -88,9 +86,6 @@ exports.createTransaction = function (utxos, toAddress, amount, fixedFee, WIF, c
 exports.broadcastTransaction = function (tx) {
   return client.request('sendrawtransaction', [tx])
 }
-
-
-
 
 exports.generateNewTaddress = function () {
 

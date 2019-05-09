@@ -4,18 +4,17 @@ module.exports = {
   },
   node: {
     username: 'bitcoin',
-    password: 'local123**',
+    password: 'local321',
     host: '127.0.0.1',
     port: 1979,
     zmqPort: 28332,
-    rpc: 'http://bitcoin:local123@127.0.0.1:1979',
   },
   knex: {
     client: 'mysql',
     connection: {
       host: '127.0.0.1',
       user: 'txtz',
-      password: 'local123**',
+      password: 'btczftw!',
       database: 'txtz',
       charset: 'utf8mb4',
     },
@@ -28,8 +27,8 @@ module.exports = {
     },
   },
   twilio: {
-    accountSid: 'twillio SSID',
-    token: 'Token',
-    smsNumber: '++123456789',
+    accountSid: 'TWILIOACCOUNTSID',
+    token: 'TWILIOTOKEN',
+    smsNumber: '+12565555555',
   }
 };

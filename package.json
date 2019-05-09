@@ -13,21 +13,21 @@
     "url": "https://www.opensource.org/licenses/mit-license.php"
   },
   "dependencies": {
-    "bitcore-lib-btcz": "git+https://github.com/bitcoinz-wallets/bitcore-lib-btcz.git",
+    "bitcore-lib-btcz": "git+https://github.com/bitcoinz-wallets/bitcore-lib-btcz.git#v2.0.0",
     "body-parser": "^1.19.0",
     "bookshelf": "^0.12.1",
     "config": "^1.31.0",
     "express": "^4.16.4",
     "google-libphonenumber": "^3.2.2",
+    "jayson": "^2.0.4",
     "joi": "^13.7.0",
-    "knex": "^0.14.4",
+    "knex": "^0.14.6",
     "memory-cache": "^0.2.0",
     "morgan": "^1.9.1",
-    "jayson": "^2.0.4",
-    "request": "^2.83.0",
-    "request-promise": "^4.2.2",
     "mysql": "^2.17.1",
     "nodemon": "^1.19.0",
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2",
     "twilio": "^3.30.3",
     "zmq": "^2.15.3"
   }

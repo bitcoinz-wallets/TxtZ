@@ -59,9 +59,9 @@ async function lookupOrCreateAddressByNumber(number) {
   } catch(err) {
     if (/^EmptyResponse/.test(err.message)) {
      console.log('No address so get new one...');
-      let addressInfo = await blockchain.generateNewTaddress();
-      let address = addressInfo.address;
-      let WIF = addressInfo.WIF;
+      const addressInfo = await blockchain.generateNewTaddress();
+      const address = addressInfo.address;
+      const WIF = addressInfo.WIF;
       await NumberMapping.create({
         number,
         address,
@@ -114,12 +114,10 @@ async function sendCoins(smsIn, numberMapping) {
       throw Error(`Not enough coins to process your request. Balance: ${balance} BTCZ`);
     }
 
-
-    let unspentOutputs = await blockchain.listunspent(fromAddress);
-    let createTx = blockchain.createTransaction;
-    let tx = createTx(unspentOutputs.result, toAddress, amount, 0.0001, numberMapping.get('WIF'));
-    let broadcast = await blockchain.broadcastTransaction(tx);
-
+    const unspentOutputs = await blockchain.listunspent(fromAddress);
+    const createTx = blockchain.createTransaction;
+    const tx = createTx(unspentOutputs.result, toAddress, amount, 0.0001, numberMapping.get('WIF'));
+    const broadcast = await blockchain.broadcastTransaction(tx);
 
     sendResponse(smsIn.From, `${amount} BTCZ has been sent to ${toAddress}`);
     console.log('sendCoins done', JSON.stringify(broadcast));
@@ -140,10 +138,8 @@ async function lookupBalance(smsIn, numberMapping) {
   const address = numberMapping.get('address');
 
   try {
-    console.log("Get balance for address " + address);
     const response = await blockchain.getBalance(address);
     const balance = response.result;
-    console.log(balance);
     sendResponse(smsIn.From, `Your balance is ${balance} BTCZ`);
   } catch(err) {
     console.error('lookupBalance error', JSON.stringify(err));
@@ -167,7 +163,6 @@ async function routeResponse(smsIn) {
   try {
     const numberMapping = await lookupOrCreateAddressByNumber(smsIn.From);
     const normalizeText = smsIn.Body.toLowerCase().trim();
-
 
     if (normalizeText === 'start' || normalizeText === 'setup' || normalizeText === 'welcome') {
       console.log('routeResponse start from ' + smsIn.From);
