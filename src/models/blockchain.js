@@ -22,7 +22,7 @@
 const config = require('config')
 const jayson = require('jayson/promise')
 const url = require('url')
-const rpcURL = 'http://'+config.node.username+':'+config.node.password+'@'+config.node.host+':'+config.node.port;
+const rpcURL = `http://${config.node.username}:${config.node.password}@${config.node.host}:${config.node.port}`;
 const rpc = url.parse(rpcURL)
 const client = jayson.client.http(rpc)
 const bitcore = require('bitcore-lib-btcz')
@@ -33,7 +33,7 @@ exports.importAddress = function (address) {
 }
 
 exports.getReceivedByAddress = function (address) {
-  let reqs = [
+  const reqs = [
     client.request('getreceivedbyaddress', [address, 0]),
     client.request('getreceivedbyaddress', [address, 1])
   ]
@@ -56,13 +56,13 @@ exports.createTransaction = function (utxos, toAddress, amount, fixedFee, WIF, c
   amount = parseInt((amount * 100000000).toFixed(0))
   fixedFee = parseInt((fixedFee * 100000000).toFixed(0))
 
-  let pk = new bitcore.PrivateKey.fromWIF(WIF)
-  let fromAddress = (pk.toPublicKey()).toAddress(bitcore.Networks.livenet)
-
+  const pk = new bitcore.PrivateKey.fromWIF(WIF)
+  const fromAddress = (pk.toPublicKey()).toAddress(bitcore.Networks.livenet)
   changeAddress = changeAddress || fromAddress
 
   let transaction = new bitcore.Transaction()
 
+  // re-loop unspent outputs to parse satochis into an decimal number
   for (const utxo of utxos) {
     transaction.from({
       'address': fromAddress,
@@ -70,7 +70,6 @@ exports.createTransaction = function (utxos, toAddress, amount, fixedFee, WIF, c
       'vout': utxo.vout,
       'scriptPubKey': utxo.scriptPubKey,
       'satoshis': parseInt((utxo.amount * 100000000).toFixed(0))
-
     })
   }
 
@@ -89,8 +88,8 @@ exports.broadcastTransaction = function (tx) {
 
 exports.generateNewTaddress = function () {
 
-  var privateKey = new bitcore.PrivateKey()
-  var address = privateKey.toAddress().toString()
+  const privateKey = new bitcore.PrivateKey()
+  const address = privateKey.toAddress().toString()
 
   return {
     'address': address,

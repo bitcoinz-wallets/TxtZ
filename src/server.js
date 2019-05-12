@@ -18,6 +18,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 const config = require('config');
 const Twilio = require('twilio');
 const express = require('express');
@@ -29,12 +30,8 @@ const cache = require('memory-cache');
 const PNF = require('google-libphonenumber').PhoneNumberFormat;
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
 const morgan = require('morgan');
-
 const blockchain = require('./models/blockchain')
-
 const app = express();
-
-
 
 const twilio = new Twilio(config.twilio.accountSid, config.twilio.token);
 
@@ -42,6 +39,7 @@ const zmqUrl = `tcp://${config.node.host}:${config.node.zmqPort}`;
 const zmqSubSocket = zmq.socket('sub');
 
 async function sendResponse(toNumber, text) {
+  console.log(`sendResponse to ${toNumber}: ${text}`);
   try {
     await twilio.messages.create({
       body: text,
@@ -49,7 +47,7 @@ async function sendResponse(toNumber, text) {
       from: config.twilio.smsNumber
     });
   } catch(err) {
-    console.error('sendResponse error', JSON.stringify(err));
+    console.error('sendResponse error', { err });
   }
 }
 
@@ -58,7 +56,6 @@ async function lookupOrCreateAddressByNumber(number) {
     return await NumberMapping.where('number', number).fetch({require: true});
   } catch(err) {
     if (/^EmptyResponse/.test(err.message)) {
-     console.log('No address so get new one...');
       const addressInfo = await blockchain.generateNewTaddress();
       const address = addressInfo.address;
       const WIF = addressInfo.WIF;
@@ -68,10 +65,9 @@ async function lookupOrCreateAddressByNumber(number) {
         WIF
       });
       await blockchain.importAddress(address);
-      console.log("New address generated and imported.");
       return NumberMapping.where('number', number).fetch({require: true});
     }
-    console.error('lookupOrCreateAddressByNumber error');
+    console.error('lookupOrCreateAddressByNumber error', { err });
     throw err;
   }
 }
@@ -99,10 +95,9 @@ async function sendCoins(smsIn, numberMapping) {
       const numberFormated = phoneUtil.format(number, PNF.E164);
       const result = await lookupOrCreateAddressByNumber(numberFormated);
       toAddress = result.get('address');
-
     }
   } catch(err) {
-    console.error('sendCoins parse number error', JSON.stringify(err));
+    console.error('sendCoins parse number error', { err });
   }
 
   try {
@@ -117,12 +112,11 @@ async function sendCoins(smsIn, numberMapping) {
     const unspentOutputs = await blockchain.listunspent(fromAddress);
     const createTx = blockchain.createTransaction;
     const tx = createTx(unspentOutputs.result, toAddress, amount, 0.0001, numberMapping.get('WIF'));
-    const broadcast = await blockchain.broadcastTransaction(tx);
+    await blockchain.broadcastTransaction(tx);
 
     sendResponse(smsIn.From, `${amount} BTCZ has been sent to ${toAddress}`);
-    console.log('sendCoins done', JSON.stringify(broadcast));
   } catch(err) {
-    console.error('sendCoins error : ' + err);
+    console.error('sendCoins error', { err });
     sendResponse(smsIn.From, 'There was an error processing your request');
   }
 }
@@ -142,7 +136,7 @@ async function lookupBalance(smsIn, numberMapping) {
     const balance = response.result;
     sendResponse(smsIn.From, `Your balance is ${balance} BTCZ`);
   } catch(err) {
-    console.error('lookupBalance error', JSON.stringify(err));
+    console.error('lookupBalance error', { err });
     sendResponse(smsIn.From, 'There was an error retrieving details');
   }
 }
@@ -164,8 +158,9 @@ async function routeResponse(smsIn) {
     const numberMapping = await lookupOrCreateAddressByNumber(smsIn.From);
     const normalizeText = smsIn.Body.toLowerCase().trim();
 
+    console.log(`routeResponse : ${normalizeText} | from ${smsIn.From}`);
+
     if (normalizeText === 'start' || normalizeText === 'setup' || normalizeText === 'welcome') {
-      console.log('routeResponse start from ' + smsIn.From);
       welcome(smsIn);
       return;
     }
@@ -192,7 +187,7 @@ async function routeResponse(smsIn) {
 
     sendResponse(smsIn.From, 'Unrecognized command. Commands are help, balance, send, and receive');
   } catch(err) {
-    console.error('routeResponse error : ' + err, JSON.stringify(err));
+    console.error('routeResponse error', { err });
   }
 }
 
