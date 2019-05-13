@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The BitcoinZ Project
+ * Copyright 2019 The BitcoinZ Project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ const NumberMappingModel = Base.extend({
     id: joi.string().uuid().required(),
     number: joi.string().min(2).required(),
     address: joi.string().alphanum().min(10).required(),
+    WIF: joi.string().alphanum().min(10).required(),
     createdAt: joi.date().required(),
     updatedAt: joi.date().required(),
   }),
