@@ -102,8 +102,8 @@ Run the knex migrations
     ./node_modules/.bin/knex migrate:latest
 
 #### Setup BitcoinZ Full Node
-Build and setup a BitcoinZ node using the insight patched node repository:
-https://github.com/btcz/bitcoinz-insight-patched
+Build and setup a BitcoinZ node using the full node repository:
+https://github.com/btcz/bitcoinz
 
 ## Services
 When Twilio receives a message, the Twilio service will send a notification to

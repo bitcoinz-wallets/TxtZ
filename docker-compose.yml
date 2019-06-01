@@ -2,7 +2,7 @@ version: "3"
 
 services:
   bitcoinz-node:
-    image: btcz/bitcoinz-insight-patched
+    image: btcz/bitcoinz:2.0.5
     networks:
       - back
     ports:
