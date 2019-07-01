@@ -62,7 +62,7 @@ exports.createTransaction = function (utxos, toAddress, amount, fixedFee, WIF, c
 
   let transaction = new bitcore.Transaction()
 
-  // re-loop unspent outputs to parse satochis into an decimal number
+  // re-loop unspent outputs to parse decimal number into satochis
   for (const utxo of utxos) {
     transaction.from({
       'address': fromAddress,
