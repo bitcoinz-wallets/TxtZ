@@ -79,13 +79,46 @@ function helpSend(smsIn) {
 
 async function sendCoins(smsIn, numberMapping) {
   const text = smsIn.Body.trim();
-  const results = text.split(" ", 3);
-  const amount = Number(results[1]);
   const fromAddress = numberMapping.get('address');
-  let toAddress = results[2];
+  const results = text.split(" ", 4);
 
-  if (!amount || !toAddress) {
+  let currencyAmound = -1;
+  let currency, amount, toAddress;
+
+  if (isNaN(results[1])) { // Check if is not numeric (with currency code)
+    currency = results[1].toUpperCase();
+    amount = Number(results[2]);
+    toAddress = results[3];
+  } else {
+    currency = "BTCZ";
+    amount = Number(results[1]);
+    toAddress = results[2];
+  }
+
+  if (currency != "BTCZ"){
+    const requestOptions = {
+      method: 'GET',
+      uri: 'https://pay.btcz.app/api/get_btcz_rate',
+      json: true,
+      gzip: true
+    };
+    await rp(requestOptions).then(response => {
+      let json = JSON.stringify(response);
+      json = JSON.parse(json);
+      currencyAmound=json[currency];
+      amount = amount/currencyAmound;
+      console.log(`Exchange rate for ${currency} : ${currencyAmound}`)
+    }).catch((err) => {
+      console.error('updateExchangeRate', { err })
+      return;
+    });
+  }
+
+  if (!amount || !toAddress || isNaN(currencyAmound)) {
     helpSend(smsIn);
+    if (isNaN(currencyAmound)){
+      sendResponse(smsIn.From, "You can use any of this currency code : BTCZ, BTC, USD, CHF, EUR, GBP, RUB, JPY, ZAR, CAD, AUD.\n\nExample:\nsend EUR 1.52 t1K2ZGbAfEJ1GZ8sGNFdG9vBqxoxpJoaVzD");
+    }
     return;
   }
 
@@ -107,7 +140,8 @@ async function sendCoins(smsIn, numberMapping) {
     const remainingBalance = balance - amount - 0.0001;
 
     if (remainingBalance < 0) {
-      throw Error(`Not enough coins to process your request. Balance: ${balance} BTCZ`);
+      sendResponse(smsIn.From, `Not enough coins to send ${amount} BTCZ. Balance: ${balance} BTCZ`);
+      return;
     }
 
     const unspentOutputs = await blockchain.listunspent(fromAddress);
@@ -131,13 +165,12 @@ function receiveCoins(smsIn, numberMapping) {
 
 async function lookupBalance(smsIn, numberMapping) {
   const address = numberMapping.get('address');
-  const text = smsIn.Body.trim()+" NULL";
+  const text = smsIn.Body.trim()+" BtcZ";
   const results = text.split(" ", 2);
-
-  let currency = results[1].toUpperCase();
+  const currency = results[1].toUpperCase();
   let currencyAmound = -1 ;
 
-  if (currency != "NULL"){
+  if (currency != "BTCZ"){
     const requestOptions = {
       method: 'GET',
       uri: 'https://pay.btcz.app/api/get_btcz_rate',
@@ -152,20 +185,19 @@ async function lookupBalance(smsIn, numberMapping) {
     }).catch((err) => {
       console.error('updateExchangeRate', { err })
     });
-  } else {
-    currency = "BTCz";
   }
 
   try {
     const response = await blockchain.getBalance(address);
 
     let balance = response.result;
+    if (isNaN(currencyAmound)){currency="BTCZ"};
     let balResponse = `${balance} ${currency}`;
-    if (currencyAmound != -1) {
+    if (currencyAmound != -1 && currency != "BTCZ") {
       const BalBTCZ = balance;
       balance = balance*currencyAmound;
       balance = balance.toFixed(3);
-      balResponse = `${balance} ${currency} (${BalBTCZ} BtcZ)`;
+      balResponse = `${balance} ${currency} (${BalBTCZ} BTCZ)`;
     }
 
     sendResponse(smsIn.From, `Your balance is ${balResponse}`);
@@ -204,7 +236,7 @@ async function routeResponse(smsIn) {
       return;
     }
 
-    if normalizeText.startsWith('balance') || normalizeText.startsWith('bal')) {
+    if (normalizeText.startsWith('balance') || normalizeText.startsWith('bal')) {
       lookupBalance(smsIn, numberMapping);
       return;
     }
