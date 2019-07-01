@@ -12,7 +12,8 @@ Warning: TxtZ is experimental and should be used at your own risk.
 * Ease to use
 * No install required for the user
 * SMS BTCZ to a friend using a phone number or Address
-* Support for both T and Z Addresses
+* Support sending to both, T Addresses and phone number
+* Support currency codes like : BTCZ, BTC, USD, CHF, EUR, GBP, RUB, JPY, ZAR, CAD, AUD
 * No smart phone required
 * Usable when you can not install an app on to a mobile device
 
@@ -120,4 +121,3 @@ repository can be found here: https://github.com/bitcoinz-wallets/txtz
 #### Future Goals
 * Support for all SMS provider
 * Support for Memos
-* Support for USD
