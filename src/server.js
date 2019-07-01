@@ -30,6 +30,7 @@ const cache = require('memory-cache');
 const PNF = require('google-libphonenumber').PhoneNumberFormat;
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
 const morgan = require('morgan');
+const rp = require('request-promise-native')
 const blockchain = require('./models/blockchain')
 const app = express();
 
@@ -130,11 +131,44 @@ function receiveCoins(smsIn, numberMapping) {
 
 async function lookupBalance(smsIn, numberMapping) {
   const address = numberMapping.get('address');
+  const text = smsIn.Body.trim()+" NULL";
+  const results = text.split(" ", 2);
+
+  let currency = results[1].toUpperCase();
+  let currencyAmound = -1 ;
+
+  if (currency != "NULL"){
+    const requestOptions = {
+      method: 'GET',
+      uri: 'https://pay.btcz.app/api/get_btcz_rate',
+      json: true,
+      gzip: true
+    };
+    await rp(requestOptions).then(response => {
+      let json = JSON.stringify(response);
+      json = JSON.parse(json);
+      currencyAmound=json[currency];
+      console.log(`Exchange rate for ${currency} : ${currencyAmound}`)
+    }).catch((err) => {
+      console.error('updateExchangeRate', { err })
+    });
+  } else {
+    currency = "BTCz";
+  }
 
   try {
     const response = await blockchain.getBalance(address);
-    const balance = response.result;
-    sendResponse(smsIn.From, `Your balance is ${balance} BTCZ`);
+
+    let balance = response.result;
+    let balResponse = `${balance} ${currency}`;
+    if (currencyAmound != -1) {
+      const BalBTCZ = balance;
+      balance = balance*currencyAmound;
+      balance = balance.toFixed(3);
+      balResponse = `${balance} ${currency} (${BalBTCZ} BtcZ)`;
+    }
+
+    sendResponse(smsIn.From, `Your balance is ${balResponse}`);
   } catch(err) {
     console.error('lookupBalance error', { err });
     sendResponse(smsIn.From, 'There was an error retrieving details');
@@ -170,7 +204,7 @@ async function routeResponse(smsIn) {
       return;
     }
 
-    if (normalizeText === 'balance' || normalizeText === 'bal') {
+    if normalizeText.startsWith('balance') || normalizeText.startsWith('bal')) {
       lookupBalance(smsIn, numberMapping);
       return;
     }
@@ -284,5 +318,6 @@ zmqSubSocket.on('message', function(topic, message) {
     transactionHandler(message);
   }
 });
+
 
 module.exports = app;
