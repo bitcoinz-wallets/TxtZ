@@ -21,7 +21,7 @@
     "google-libphonenumber": "^3.2.2",
     "jayson": "^2.0.4",
     "joi": "^13.7.0",
-    "knex": "^0.14.6",
+    "knex": "^0.19.5",
     "memory-cache": "^0.2.0",
     "morgan": "^1.9.1",
     "mysql": "^2.17.1",
