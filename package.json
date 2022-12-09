@@ -17,7 +17,7 @@
     "body-parser": "^1.19.0",
     "bookshelf": "^0.12.1",
     "config": "^1.31.0",
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "google-libphonenumber": "^3.2.2",
     "jayson": "^2.0.4",
     "joi": "^13.7.0",
